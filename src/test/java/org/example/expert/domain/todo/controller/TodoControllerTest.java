@@ -4,6 +4,7 @@ import org.example.expert.domain.common.dto.AuthUser;
 import org.example.expert.domain.common.exception.InvalidRequestException;
 import org.example.expert.config.JwtUtil;
 import org.example.expert.domain.todo.dto.response.TodoResponse;
+import org.example.expert.domain.todo.dto.response.TodoSearchResponse;
 import org.example.expert.domain.todo.service.TodoService;
 import org.example.expert.domain.user.dto.response.UserResponse;
 import org.example.expert.domain.user.entity.User;
@@ -12,11 +13,14 @@ import org.junit.jupiter.api.Test;
 import org.springframework.beans.factory.annotation.Autowired;
 import org.springframework.boot.test.autoconfigure.web.servlet.WebMvcTest;
 import org.springframework.boot.test.mock.mockito.MockBean;
+import org.springframework.data.domain.PageImpl;
+import org.springframework.data.domain.PageRequest;
 import org.springframework.http.HttpStatus;
 import org.springframework.security.test.context.support.WithMockUser;
 import org.springframework.test.web.servlet.MockMvc;
 
 import java.time.LocalDateTime;
+import java.util.List;
 
 import static org.mockito.Mockito.when;
 import static org.springframework.test.web.servlet.request.MockMvcRequestBuilders.get;
@@ -35,6 +39,37 @@ class TodoControllerTest {
 
     @MockBean
     private JwtUtil jwtUtil;
+
+    @Test
+    void todo_search_목록은_Projection_응답을_반환한다() throws Exception {
+        // given
+        UserResponse userResponse = new UserResponse(1L, "writer@test.com");
+        TodoSearchResponse response = new TodoSearchResponse(
+                1L,
+                "title",
+                "contents",
+                "Sunny",
+                userResponse,
+                LocalDateTime.now(),
+                LocalDateTime.now(),
+                2L,
+                3L
+        );
+
+        when(todoService.searchTodos(1, 10, "Sunny", null, null))
+                .thenReturn(new PageImpl<>(List.of(response), PageRequest.of(0, 10), 1));
+
+        // when & then
+        mockMvc.perform(get("/todos/search")
+                        .param("page", "1")
+                        .param("size", "10")
+                        .param("weather", "Sunny"))
+                .andExpect(status().isOk())
+                .andExpect(jsonPath("$.content[0].id").value(1L))
+                .andExpect(jsonPath("$.content[0].title").value("title"))
+                .andExpect(jsonPath("$.content[0].managerCount").value(2L))
+                .andExpect(jsonPath("$.content[0].commentCount").value(3L));
+    }
 
     @Test
     void todo_단건_조회에_성공한다() throws Exception {
