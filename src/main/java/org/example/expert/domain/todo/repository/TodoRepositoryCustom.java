@@ -9,7 +9,7 @@ import org.springframework.data.domain.Page;
 import org.springframework.data.domain.Pageable;
 
 public interface TodoRepositoryCustom {
-	Page<TodoSearchResponse> searchTodosWithProjection(String weather, LocalDateTime start, LocalDateTime end, Pageable pageable);
+	Page<TodoSearchResponse> searchTodosWithProjection(String title, String nickname, LocalDateTime start, LocalDateTime end, Pageable pageable);
 
 	Optional<Todo> findByIdWithUser(Long todoId);
 }

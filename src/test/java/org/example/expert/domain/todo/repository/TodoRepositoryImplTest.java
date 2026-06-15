@@ -54,7 +54,8 @@ class TodoRepositoryImplTest {
 		entityManager.clear();
 
 		Page<TodoSearchResponse> result = todoRepository.searchTodosWithProjection(
-			"Sunny",
+			"titl",
+			"manager",
 			LocalDateTime.now().minusDays(1),
 			LocalDateTime.now().plusDays(1),
 			PageRequest.of(0, 10)
@@ -66,8 +67,6 @@ class TodoRepositoryImplTest {
 		TodoSearchResponse response = result.getContent().get(0);
 		assertThat(response.getId()).isEqualTo(todo.getId());
 		assertThat(response.getTitle()).isEqualTo("title");
-		assertThat(response.getWeather()).isEqualTo("Sunny");
-		assertThat(response.getUser().getEmail()).isEqualTo("writer@test.com");
 		assertThat(response.getManagerCount()).isEqualTo(2);
 		assertThat(response.getCommentCount()).isEqualTo(2);
 	}
