@@ -9,17 +9,14 @@ import java.time.LocalDateTime;
 import java.util.List;
 import java.util.Optional;
 
-import org.example.expert.domain.manager.entity.QManager;
 import org.example.expert.domain.todo.dto.response.TodoSearchResponse;
 import org.example.expert.domain.todo.entity.Todo;
-import org.example.expert.domain.user.entity.QUser;
+import org.example.expert.domain.user.dto.response.UserResponse;
 import org.springframework.data.domain.Page;
 import org.springframework.data.domain.PageImpl;
 import org.springframework.data.domain.Pageable;
-import org.springframework.util.StringUtils;
 
 import com.querydsl.core.types.dsl.NumberExpression;
-import com.querydsl.jpa.JPAExpressions;
 import com.querydsl.jpa.impl.JPAQueryFactory;
 import com.querydsl.core.BooleanBuilder;
 import com.querydsl.core.types.Projections;
@@ -32,8 +29,8 @@ public class TodoRepositoryImpl implements TodoRepositoryCustom {
 	private final JPAQueryFactory jpaQueryFactory;
 
 	@Override
-	public Page<TodoSearchResponse> searchTodosWithProjection(String title, String nickname, LocalDateTime start, LocalDateTime end, Pageable pageable) {
-		BooleanBuilder condition = createSearchCondition(title, nickname, start, end);
+	public Page<TodoSearchResponse> searchTodosWithProjection(String weather, LocalDateTime start, LocalDateTime end, Pageable pageable) {
+		BooleanBuilder condition = createSearchCondition(weather, start, end);
 		NumberExpression<Long> managerCount = manager.id.countDistinct();
 		NumberExpression<Long> commentCount = comment.id.countDistinct();
 
@@ -42,19 +39,34 @@ public class TodoRepositoryImpl implements TodoRepositoryCustom {
 				TodoSearchResponse.class,
 				todo.id,
 				todo.title,
+				todo.contents,
+				todo.weather,
+				Projections.constructor(
+					UserResponse.class,
+					user.id,
+					user.email
+				),
+				todo.createdAt,
+				todo.modifiedAt,
 				managerCount,
 				commentCount
 			))
 			.from(todo)
+			.leftJoin(todo.user, user)
 			.leftJoin(todo.managers, manager)
 			.leftJoin(todo.comments, comment)
 			.where(condition)
 			.groupBy(
 				todo.id,
 				todo.title,
-				todo.createdAt
+				todo.contents,
+				todo.weather,
+				user.id,
+				user.email,
+				todo.createdAt,
+				todo.modifiedAt
 			)
-			.orderBy(todo.createdAt.desc())
+			.orderBy(todo.modifiedAt.desc())
 			.offset(pageable.getOffset())
 			.limit(pageable.getPageSize())
 			.fetch();
@@ -81,31 +93,19 @@ public class TodoRepositoryImpl implements TodoRepositoryCustom {
 		return Optional.ofNullable(result);
 	}
 
-	private BooleanBuilder createSearchCondition(String title, String nickname, LocalDateTime start, LocalDateTime end) {
+	private BooleanBuilder createSearchCondition(String weather, LocalDateTime start, LocalDateTime end) {
 		BooleanBuilder condition = new BooleanBuilder();
 
-		if (StringUtils.hasText(title)) {
-			condition.and(todo.title.contains(title));
+		if (weather != null) {
+			condition.and(todo.weather.eq(weather));
 		}
 
 		if (start != null) {
-			condition.and(todo.createdAt.goe(start));
+			condition.and(todo.modifiedAt.goe(start));
 		}
 
 		if (end != null) {
-			condition.and(todo.createdAt.loe(end));
-		}
-
-		if (StringUtils.hasText(nickname)) {
-			QManager subManager = new QManager("subManager");
-			QUser subUser = new QUser("subUser");
-			condition.and(JPAExpressions
-				.selectOne()
-				.from(subManager)
-				.join(subManager.user, subUser)
-				.where(subManager.todo.eq(todo)
-					.and(subUser.nickname.contains(nickname)))
-				.exists());
+			condition.and(todo.modifiedAt.loe(end));
 		}
 
 		return condition;

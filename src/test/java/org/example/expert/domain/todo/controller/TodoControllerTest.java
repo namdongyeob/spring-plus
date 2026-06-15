@@ -43,21 +43,27 @@ class TodoControllerTest {
     @Test
     void todo_search_목록은_Projection_응답을_반환한다() throws Exception {
         // given
+        UserResponse userResponse = new UserResponse(1L, "writer@test.com");
         TodoSearchResponse response = new TodoSearchResponse(
                 1L,
                 "title",
+                "contents",
+                "Sunny",
+                userResponse,
+                LocalDateTime.now(),
+                LocalDateTime.now(),
                 2L,
                 3L
         );
 
-        when(todoService.searchTodos(1, 10, "title", null, null, null))
+        when(todoService.searchTodos(1, 10, "Sunny", null, null))
                 .thenReturn(new PageImpl<>(List.of(response), PageRequest.of(0, 10), 1));
 
         // when & then
         mockMvc.perform(get("/todos/search")
                         .param("page", "1")
                         .param("size", "10")
-                        .param("title", "title"))
+                        .param("weather", "Sunny"))
                 .andExpect(status().isOk())
                 .andExpect(jsonPath("$.content[0].id").value(1L))
                 .andExpect(jsonPath("$.content[0].title").value("title"))

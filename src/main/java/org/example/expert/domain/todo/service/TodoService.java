@@ -67,10 +67,10 @@ public class TodoService {
         ));
     }
 
-    public Page<TodoSearchResponse> searchTodos(int page, int size, String title, String nickname, LocalDateTime start, LocalDateTime end) {
+    public Page<TodoSearchResponse> searchTodos(int page, int size, String weather, LocalDateTime start, LocalDateTime end) {
         Pageable pageable = PageRequest.of(page - 1, size);
 
-        return todoRepository.searchTodosWithProjection(title, nickname, start, end, pageable);
+        return todoRepository.searchTodosWithProjection(weather, start, end, pageable);
     }
 
     public TodoResponse getTodo(long todoId) {
