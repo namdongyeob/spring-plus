@@ -44,11 +44,12 @@ public class TodoController {
     public ResponseEntity<Page<TodoSearchResponse>> searchTodos(
             @RequestParam(defaultValue = "1") int page,
             @RequestParam(defaultValue = "10") int size,
-            @RequestParam(required = false) String weather,
+            @RequestParam(required = false) String title,
+            @RequestParam(required = false) String nickname,
             @RequestParam(required = false) LocalDateTime start,
             @RequestParam(required = false) LocalDateTime end
     ) {
-        return ResponseEntity.ok(todoService.searchTodos(page, size, weather, start, end));
+        return ResponseEntity.ok(todoService.searchTodos(page, size, title, nickname, start, end));
     }
 
     @GetMapping("/todos/{todoId}")
