@@ -17,8 +17,8 @@ public class ChatMessageResponse {
 	public ChatMessageResponse(ChatMessage chatMessage) {
 		this.messageId = chatMessage.getId();
 		this.content = chatMessage.getContent();
-		this.senderId = chatMessage.getSender().getId();
-		this.senderNickname = chatMessage.getSender().getNickname();
+		this.senderId = chatMessage.getSender() != null ? chatMessage.getSender().getId() : null;
+		this.senderNickname = chatMessage.getSenderName();
 		this.createdAt = chatMessage.getCreatedAt();
 	}
 }

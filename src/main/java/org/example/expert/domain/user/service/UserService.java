@@ -7,6 +7,7 @@ import org.example.expert.domain.user.dto.response.UserResponse;
 import org.example.expert.domain.user.dto.response.UserSearchResponse;
 import org.example.expert.domain.user.entity.User;
 import org.example.expert.domain.user.repository.UserRepository;
+import org.springframework.cache.annotation.Cacheable;
 import org.springframework.security.crypto.password.PasswordEncoder;
 import org.springframework.stereotype.Service;
 import org.springframework.transaction.annotation.Transactional;
@@ -26,11 +27,9 @@ public class UserService {
         return new UserResponse(user.getId(), user.getEmail());
     }
 
+    @Cacheable(value = "usersByNickname", key = "#nickname")
     public List<UserSearchResponse> searchUsersByNickname(String nickname) {
-        return userRepository.findAllByNickname(nickname)
-                .stream()
-                .map(UserSearchResponse::from)
-                .toList();
+        return userRepository.searchByNickname(nickname);
     }
 
     @Transactional

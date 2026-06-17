@@ -22,9 +22,9 @@ public class ChatStompController {
 	@MessageMapping("/chat.send")
 	public void send(ChatMessageSendRequest request, Principal principal) {
 		StompPrincipal stompPrincipal = (StompPrincipal)principal;
-		Long userId = stompPrincipal.getAuthUser().getId();
 
-		ChatMessageResponse response = chatMessageService.saveMessage(userId, request);
+		ChatMessageResponse response = chatMessageService.saveMessage(
+			stompPrincipal.getUserId(), stompPrincipal.getNickname(), request);
 		messagingTemplate.convertAndSend("/sub/chat/" + request.getRoomId(), response);
 	}
 }

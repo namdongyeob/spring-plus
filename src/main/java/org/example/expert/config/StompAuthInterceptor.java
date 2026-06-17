@@ -1,6 +1,7 @@
 package org.example.expert.config;
 
 import java.util.Objects;
+import java.util.UUID;
 
 import org.example.expert.domain.auth.exception.AuthException;
 import org.example.expert.domain.common.dto.AuthUser;
@@ -37,9 +38,19 @@ public class StompAuthInterceptor implements ChannelInterceptor {
 		if (StompCommand.CONNECT.equals(Objects.requireNonNull(accessor).getCommand())) {
 
 			String bearerToken = accessor.getFirstNativeHeader("Authorization");
-			if (!StringUtils.hasText(bearerToken) || !bearerToken.startsWith("Bearer ")) {
-				log.warn("STOMP CONNECT rejected: missing Authorization header");
-				throw new AuthException("WebSocket 인증 토큰이 없습니다.");
+
+			// 토큰이 없으면 익명 유저로 접속 허용
+			if (!StringUtils.hasText(bearerToken)) {
+				String anonId = "anon-" + UUID.randomUUID();
+				String anonNickname = "익명-" + anonId.substring(5, 13);
+				accessor.setUser(StompPrincipal.anonymous(anonId, anonNickname));
+				return message;
+			}
+
+			// 토큰이 있는데 형식이 잘못된 경우는 클라이언트 오류로 거부
+			if (!bearerToken.startsWith("Bearer ")) {
+				log.warn("STOMP CONNECT rejected: malformed Authorization header");
+				throw new AuthException("WebSocket 인증 토큰 형식이 올바르지 않습니다.");
 			}
 
 			String token = jwtUtil.substringToken(bearerToken);
@@ -61,7 +72,7 @@ public class StompAuthInterceptor implements ChannelInterceptor {
 				});
 
 			AuthUser authUser = new AuthUser(user.getId(), user.getEmail(), user.getUserRole());
-			accessor.setUser(new StompPrincipal(authUser, user.getNickname()));
+			accessor.setUser(StompPrincipal.authenticated(authUser, user.getNickname()));
 		}
 
 		return message;

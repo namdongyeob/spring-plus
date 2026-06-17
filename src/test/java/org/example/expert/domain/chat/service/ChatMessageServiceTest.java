@@ -3,6 +3,7 @@ package org.example.expert.domain.chat.service;
 import static org.assertj.core.api.Assertions.assertThat;
 import static org.mockito.ArgumentMatchers.any;
 import static org.mockito.Mockito.verify;
+import static org.mockito.Mockito.verifyNoInteractions;
 import static org.mockito.Mockito.when;
 
 import java.util.Optional;
@@ -51,16 +52,40 @@ class ChatMessageServiceTest {
 		when(chatMessageRepository.save(any(ChatMessage.class)))
 			.thenAnswer(invocation -> invocation.getArgument(0));
 
-		ChatMessageResponse response = chatMessageService.saveMessage(userId, request);
+		ChatMessageResponse response = chatMessageService.saveMessage(userId, "nickname", request);
 
 		ArgumentCaptor<ChatMessage> captor = ArgumentCaptor.forClass(ChatMessage.class);
 		verify(chatMessageRepository).save(captor.capture());
 
 		ChatMessage savedMessage = captor.getValue();
 		assertThat(savedMessage.getSender()).isEqualTo(sender);
+		assertThat(savedMessage.getSenderName()).isEqualTo("nickname");
 		assertThat(savedMessage.getChatRoom()).isEqualTo(room);
 		assertThat(savedMessage.getContent()).isEqualTo("hello");
 		assertThat(response.getContent()).isEqualTo("hello");
 		assertThat(response.getSenderNickname()).isEqualTo("nickname");
+	}
+
+	@Test
+	void saveMessage_savesAnonymousMessageWithoutUserLookup() {
+		Long roomId = 10L;
+		ChatRoom room = new ChatRoom("test room");
+		ChatMessageSendRequest request = new ChatMessageSendRequest(roomId, "hi");
+
+		when(chatRoomRepository.findById(roomId)).thenReturn(Optional.of(room));
+		when(chatMessageRepository.save(any(ChatMessage.class)))
+			.thenAnswer(invocation -> invocation.getArgument(0));
+
+		ChatMessageResponse response = chatMessageService.saveMessage(null, "익명-abcd1234", request);
+
+		ArgumentCaptor<ChatMessage> captor = ArgumentCaptor.forClass(ChatMessage.class);
+		verify(chatMessageRepository).save(captor.capture());
+
+		ChatMessage savedMessage = captor.getValue();
+		assertThat(savedMessage.getSender()).isNull();
+		assertThat(savedMessage.getSenderName()).isEqualTo("익명-abcd1234");
+		assertThat(response.getSenderId()).isNull();
+		assertThat(response.getSenderNickname()).isEqualTo("익명-abcd1234");
+		verifyNoInteractions(userRepository);
 	}
 }
