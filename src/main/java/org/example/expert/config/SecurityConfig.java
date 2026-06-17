@@ -20,6 +20,7 @@ import lombok.RequiredArgsConstructor;
 @EnableMethodSecurity(securedEnabled = true)
 public class SecurityConfig {
 	private final SecurityJwtFilter securityJwtFilter;
+	private final SecurityExceptionHandler securityExceptionHandler = new SecurityExceptionHandler();
 
 	@Bean
 	public PasswordEncoder passwordEncoder() {
@@ -37,6 +38,9 @@ public class SecurityConfig {
 			.anonymous(AbstractHttpConfigurer::disable)
 			.sessionManagement(session ->
 				session.sessionCreationPolicy(SessionCreationPolicy.STATELESS))
+			.exceptionHandling(ex -> ex
+				.authenticationEntryPoint(securityExceptionHandler)
+				.accessDeniedHandler(securityExceptionHandler))
 			.addFilterBefore(securityJwtFilter, UsernamePasswordAuthenticationFilter.class)
 			.authorizeHttpRequests(auth -> auth
 				.requestMatchers("/auth/**", "/ws").permitAll()
