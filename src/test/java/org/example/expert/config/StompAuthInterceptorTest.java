@@ -1,8 +1,10 @@
 package org.example.expert.config;
 
+import static org.assertj.core.api.Assertions.assertThat;
 import static org.assertj.core.api.Assertions.assertThatThrownBy;
 import static org.mockito.Mockito.when;
 
+import java.security.Principal;
 import java.util.Optional;
 
 import org.example.expert.domain.auth.exception.AuthException;
@@ -16,6 +18,7 @@ import org.springframework.messaging.MessageChannel;
 import org.springframework.messaging.simp.stomp.StompCommand;
 import org.springframework.messaging.simp.stomp.StompHeaderAccessor;
 import org.springframework.messaging.support.MessageBuilder;
+import org.springframework.messaging.support.MessageHeaderAccessor;
 
 import io.jsonwebtoken.Claims;
 import io.jsonwebtoken.JwtException;
@@ -36,12 +39,27 @@ class StompAuthInterceptorTest {
 	private Claims claims;
 
 	@Test
-	void preSend_throwsAuthExceptionWhenAuthorizationHeaderMissing() {
+	void preSend_createsAnonymousPrincipalWhenAuthorizationHeaderMissing() {
 		StompAuthInterceptor interceptor = new StompAuthInterceptor(jwtUtil, userRepository);
 
-		assertThatThrownBy(() -> interceptor.preSend(connectMessage(null), channel))
+		Message<?> result = interceptor.preSend(connectMessage(null), channel);
+
+		StompHeaderAccessor accessor = MessageHeaderAccessor.getAccessor(result, StompHeaderAccessor.class);
+		Principal user = accessor.getUser();
+		assertThat(user).isInstanceOf(StompPrincipal.class);
+		StompPrincipal principal = (StompPrincipal) user;
+		assertThat(principal.isAnonymous()).isTrue();
+		assertThat(principal.getUserId()).isNull();
+		assertThat(principal.getNickname()).startsWith("익명-");
+	}
+
+	@Test
+	void preSend_throwsAuthExceptionWhenAuthorizationHeaderMalformed() {
+		StompAuthInterceptor interceptor = new StompAuthInterceptor(jwtUtil, userRepository);
+
+		assertThatThrownBy(() -> interceptor.preSend(connectMessage("invalid-token"), channel))
 			.isInstanceOf(AuthException.class)
-			.hasMessage("WebSocket 인증 토큰이 없습니다.");
+			.hasMessage("WebSocket 인증 토큰 형식이 올바르지 않습니다.");
 	}
 
 	@Test
@@ -73,6 +91,7 @@ class StompAuthInterceptorTest {
 		if (authorization != null) {
 			accessor.setNativeHeader("Authorization", authorization);
 		}
+		accessor.setLeaveMutable(true);
 		return MessageBuilder.createMessage(new byte[0], accessor.getMessageHeaders());
 	}
 }

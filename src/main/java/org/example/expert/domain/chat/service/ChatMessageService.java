@@ -28,14 +28,17 @@ public class ChatMessageService {
 	private final UserRepository userRepository;
 
 	@Transactional
-	public ChatMessageResponse saveMessage(Long userId, ChatMessageSendRequest request) {
-		User sender = userRepository.findById(userId)
-			.orElseThrow(() -> new InvalidRequestException("유저를 찾을 수 없습니다."));
-
+	public ChatMessageResponse saveMessage(Long userId, String senderName, ChatMessageSendRequest request) {
 		ChatRoom chatRoom = chatRoomRepository.findById(request.getRoomId())
 			.orElseThrow(() -> new InvalidRequestException("채팅방을 찾을 수 없습니다."));
 
-		ChatMessage chatMessage = new ChatMessage(chatRoom, sender, request.getContent());
+		User sender = null;
+		if (userId != null) {
+			sender = userRepository.findById(userId)
+				.orElseThrow(() -> new InvalidRequestException("유저를 찾을 수 없습니다."));
+		}
+
+		ChatMessage chatMessage = new ChatMessage(chatRoom, sender, senderName, request.getContent());
 		ChatMessage savedMessage = chatMessageRepository.save(chatMessage);
 
 		return new ChatMessageResponse(savedMessage);
