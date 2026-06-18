@@ -13,7 +13,7 @@ public interface ChatMessageRepository extends JpaRepository<ChatMessage, Long> 
 	@Query("""
 		select m
 		from ChatMessage m
-		join fetch m.sender
+		left join fetch m.sender
 		where m.chatRoom.id = :roomId
 		order by m.id desc
 		""")
